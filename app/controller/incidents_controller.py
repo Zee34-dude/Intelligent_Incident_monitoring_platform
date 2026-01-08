@@ -79,7 +79,7 @@ def get_metrics_by_service(
                     func.extract(
                         "epoch",
                         models.Incident.resolved_at
-                        - models.Incident.created_at
+                        - models.Incident.started_at
                     )
                 )
             )

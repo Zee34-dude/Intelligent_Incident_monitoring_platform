@@ -30,41 +30,34 @@ async def health_check_loop():
 
                     # 🔻 SERVICE WENT DOWN → CREATE NEW INCIDENT
                     if current_status == "DOWN":
-                        active_incident = (
-                            db.query(models.Incident)
-                            .filter(
-                                models.Incident.service_id == service.id,
-                                models.Incident.status == "OPEN"
-                            )
-                            .first()
+                        new_incident = models.Incident(
+                            service_id=service.id,
+                            title=f"{service.website_name} is DOWN",
+                            status="OPEN",
+                            severity=calculate_severity(result),
+                            organization_id=service.organization_Id,
+                            
                         )
-
-                        if not active_incident:
-                            new_incident = models.Incident(
-                                service_id=service.id,
-                                title=f"{service.website_name} is DOWN",
-                                status="OPEN",
-                                severity=calculate_severity(result),
-                                organization_id=service.organization_Id,
-                                
-                            )
-                            db.add(new_incident)
+                        db.add(new_incident)
 
                     # 🔺 SERVICE RECOVERED → RESOLVE ACTIVE INCIDENT
                     elif current_status == "UP":
-                        active_incident = (
+                        latest_incident=(
                             db.query(models.Incident)
-                            .filter(
-                                models.Incident.service_id == service.id,
-                                models.Incident.status == "OPEN"
-                            )
+                            .filter(models.Incident.service_id==service.id)
+                            .order_by(models.Incident.created_at.desc())
                             .first()
                         )
-
-                        if active_incident:
-                            active_incident.status = "RESOLVED"
-                            active_incident.resolved_at = datetime.now(timezone.utc)
-
+                        new_incident = models.Incident(
+                        service_id=service.id,
+                        title=f"{service.website_name} is UP",
+                        status="RESOLVED",
+                        severity=calculate_severity(result),
+                        organization_id=service.organization_Id,
+                        started_at=latest_incident.created_at
+                        
+                        )
+                        db.add(new_incident)
                 # 🔁 ALWAYS UPDATE SERVICE STATE
                 service.status = current_status
                 service.last_status = current_status

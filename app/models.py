@@ -89,6 +89,7 @@ class Incident(Base,TimestampMixin):
     )
     resolved_at=Column(DateTime, nullable=True)
     service_id=Column(Integer,ForeignKey("services.id"))
+    started_at=Column(DateTime, nullable=True)
     organizations = relationship("Organization", back_populates="incidents")
     services=relationship("Service",back_populates="incidents")
     
