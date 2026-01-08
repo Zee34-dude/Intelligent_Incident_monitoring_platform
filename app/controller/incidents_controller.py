@@ -1,158 +1,111 @@
-from fastapi import Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from ..health.utils import current_downtime 
+from datetime import datetime, timezone
 
 from app import models
+from ..health.utils import current_downtime
 
-def get_metrics_by_organization(organization_id:int,db:Session):
-    total_incidents= db.query(models.Incident).filter(
-        organization_id==models.Incident.organization_id,
-    ).count()
-    
-    open_incidents= (
-        db.query(models.Incident).filter(
-            organization_id==models.Incident.organization_id,
-            models.Incident.status=='OPEN'
-        )
-        .count()
-        )
-    resolved_incidents=total_incidents-open_incidents
-    
-   # ---- MTTR (Mean Time To Resolve) ----
-    mttt_seconds=(
-       db.query(
-           func.avg(
-              func.extract(
-                  "epoch",
-                    models.Incident.resolved_at-models.Incident.created_at
-              ) 
-           )
-       )
-       .filter(
-           models.Incident.organization_id==organization_id,
-           models.Incident.status=='RESOLVED',
-           models.Incident.resolved_at.isnot(None)
-       )
-       .scalar()
-   )
-    mttr_minutes=round(mttt_seconds/60,2) if mttr_minutes else None 
-    
-    services=(
-        db.query(models.Service).filter(
-           models.Service.organization_Id==organization_id 
-        )
+
+def get_metrics_by_service(
+    organization_id: int,
+    db: Session
+):
+    services = (
+        db.query(models.Service)
+        .filter(models.Service.organization_Id == organization_id)
+        .all()
     )
-    
-    service_metrics=[]
+
+    metrics = []
+
     for service in services:
-        service_total=(
+        # ---- INCIDENT COUNT ----
+        incident_count = (
             db.query(models.Incident)
-            .filter(models.Incident.service_id==service.id)
+            .filter(models.Incident.service_id == service.id)
             .count()
         )
-        service_open=(
-            db.query(models.Incident)
+
+        # ---- SEVERITY DISTRIBUTION ----
+        severity_rows = (
+            db.query(
+                models.Incident.severity,
+                func.count(models.Incident.id)
+            )
+            .filter(models.Incident.service_id == service.id)
+            .group_by(models.Incident.severity)
+            .all()
+        )
+
+        severity_distribution = {
+            "LOW": 0,
+            "MEDIUM": 0,
+            "HIGH": 0,
+            "CRITICAL": 0,
+        }
+
+        for severity, count in severity_rows:
+            severity_distribution[severity] = count
+
+        # ---- MTTR (seconds) ----
+        mttr_seconds = (
+            db.query(
+                func.avg(
+                    func.extract(
+                        "epoch",
+                        models.Incident.resolved_at
+                        - models.Incident.created_at
+                    )
+                )
+            )
             .filter(
                 models.Incident.service_id == service.id,
-                models.Incident.status == "OPEN"
+                models.Incident.status == "RESOLVED",
+                models.Incident.resolved_at.isnot(None)
             )
-            .count()
+            .scalar()
+        ) or 0
+
+        # ---- DOWNTIME ----
+        current_downtime_seconds = (
+            current_downtime(service,db)
+            if service.status == "DOWN"
+            else 0
         )
-        last_incident=(
-            db.query(models.Incident.created_at)
-            .filter(models.Incident.service_id==service.id)
-            .order_by(models.Incident.created_at.desc())
-            .first()
-        )
-        service_metrics.append({
-            "service_id": service.id,
-            "service_name": service.website_name,
-            "total_incidents": service_total,
-            "open_incidents": service_open,
-            "last_incident_at": last_incident[0] if last_incident else None
-        })
-        return {
-        "total_incidents": total_incidents,
-        "open_incidents": open_incidents,
-        "resolved_incidents": resolved_incidents,
-        "mean_time_to_resolve_minutes": mttr_minutes,
-        "services": service_metrics
-     }
-        
-def get_metrics_by_service(organization_id:int,db:Session):
-    total_incidents= db.query(models.Incident).filter(
-        organization_id==models.Incident.organization_id,
-    ).count()
-    
-    open_incidents= (
-        db.query(models.Incident).filter(
-            organization_id==models.Incident.organization_id,
-            models.Incident.status=='OPEN'
-        )
-        .count()
-        )
-    resolved_incidents=total_incidents-open_incidents
-    
-   # ---- MTTR (Mean Time To Resolve) ----
-    mttt_seconds=(
-       db.query(
-           func.avg(
-              func.extract(
-                  "epoch",
-                    models.Incident.resolved_at-models.Incident.created_at
-              ) 
-           )
-       )
-       .filter(
-           models.Incident.organization_id==organization_id,
-           models.Incident.status=='RESOLVED',
-           models.Incident.resolved_at.isnot(None)
-       )
-       .scalar()
-   )
-    mttr_minutes=round(mttt_seconds/60,2) if mttr_minutes else None 
-    
-    services=(
-        db.query(models.Service).filter(
-           models.Service.organization_Id==organization_id 
-        )
-    )
-    
-    service_metrics=[]
-    for service in services:
-        service_total=(
-            db.query(models.Incident)
-            .filter(models.Incident.service_id==service.id)
-            .count()
-        )
-        service_open=(
-            db.query(models.Incident)
+
+        total_downtime_seconds = (
+            db.query(
+                func.sum(
+                    func.extract(
+                        "epoch",
+                        models.Incident.resolved_at
+                        - models.Incident.created_at
+                    )
+                )
+            )
             .filter(
                 models.Incident.service_id == service.id,
-                models.Incident.status == "OPEN"
+                models.Incident.status == "RESOLVED",
+                models.Incident.resolved_at.isnot(None)
             )
-            .count()
-        )
-        last_incident=(
-            db.query(models.Incident.created_at)
-            .filter(models.Incident.service_id==service.id)
-            .order_by(models.Incident.created_at.desc())
-            .first()
-        )
-        service_metrics.append({
+            .scalar()
+        ) or 0
+
+        service_life_time=(   
+            datetime.now(timezone.utc)-service.created_at
+        ).total_seconds()
+        uptime_percentage = (
+           ((service_life_time-total_downtime_seconds)/service_life_time)
+        )*100
+
+        metrics.append({
             "service_id": service.id,
-            "service_name": service.website_name,
-            "total_incidents": service_total,
-            "open_incidents": service_open,
-            "last_incident_at": last_incident[0] if last_incident else None
+            "uptime_percentage": uptime_percentage,
+            "current_downtime_seconds": int(current_downtime_seconds),
+            "total_downtime_seconds": int(total_downtime_seconds),
+            "mttr_seconds": int(mttr_seconds),
+            "incident_count": incident_count,
+            "severity_distribution": severity_distribution,
         })
-        return {
-        "total_incidents": total_incidents,
-        "open_incidents": open_incidents,
-        "resolved_incidents": resolved_incidents,
-        "mean_time_to_resolve_minutes": mttr_minutes,
-        "services": service_metrics
-     }
-        
-      
+
+    return metrics

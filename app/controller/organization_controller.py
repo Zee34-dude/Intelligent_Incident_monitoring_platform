@@ -1,8 +1,6 @@
-from fastapi import Depends, HTTPException
-from app.auth.dependencies import require_org_role
-from app.database import get_db
+from datetime import datetime, timezone
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
-from ..models import Service
 from ..import schemas
 from app import models 
 
@@ -15,7 +13,7 @@ def create_service(
 ):
   
     print('request',request)
-    new_service = Service(
+    new_service = models.Service(
         website_name=request.website_name,
         url=request.url,
         status=request.status,
@@ -25,7 +23,19 @@ def create_service(
     db.add(new_service)
     db.commit()
     db.refresh(new_service)
-
+    
+    new_incident=models.Incident(
+        service_id=new_service.id,
+        title=f"{new_service.website_name} is UP",
+        status="RESOLVED",
+        resolved_at=datetime.now(timezone.utc),
+        severity='LOW',
+        organization_id=new_service.organization_Id,
+    )
+    db.add(new_incident)
+    db.commit()
+    db.refresh(new_incident)
+    
     return new_service
 
 def update_service(

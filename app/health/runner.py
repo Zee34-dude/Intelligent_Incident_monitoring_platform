@@ -46,7 +46,7 @@ async def health_check_loop():
                                 status="OPEN",
                                 severity=calculate_severity(result),
                                 organization_id=service.organization_Id,
-                                started_at=datetime.now(timezone.utc),
+                                
                             )
                             db.add(new_incident)
 

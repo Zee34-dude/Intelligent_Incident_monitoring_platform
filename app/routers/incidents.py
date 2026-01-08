@@ -13,7 +13,7 @@ router=APIRouter(
 def create_incident(request:schemas.IncidentCreate,db:Session=Depends(get_db)):
     return incidents_controller.create_incident(request,db)
 
-@router.get('/services/{organization_id}/metrics',response_model=schemas.ServiceCreate)
+@router.get('/services/{organization_id}/metrics',response_model=schemas.ServiceMetrics)
 def get_metrics_by_organization(organization_id:int,db:Session=Depends(get_db)):
-    incidents_controller.get_metrics_by_organization(organization_id,db)
+    incidents_controller.get_metrics_by_service(organization_id,db)
     

@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 
+from app import models
+
 def calculate_severity(service, result):
     status = result.get("status")
     status_code = result.get("status_code")
@@ -17,6 +19,16 @@ def calculate_severity(service, result):
 
     return "LOW"
 
-def current_downtime(incident):
-    end_time = incident.resolved_at or datetime.now(timezone.utc)
-    return (end_time - incident.created_at).total_seconds()
+def current_downtime(service,db):
+    lastest_incident=( 
+    db.query(models.Incident)
+    .filter(
+    models.Incident.service_id==service.id)
+    .order_by(models.Incident.created_at.desc())
+    .first()
+  )
+    
+    if lastest_incident.resolved_at:
+        return 0
+    else:
+        return (datetime.now(timezone.utc)-lastest_incident.created_at).total_seconds()

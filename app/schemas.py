@@ -1,5 +1,5 @@
 from pydantic import BaseModel,EmailStr
-from typing import List, Optional
+from typing import Dict, List, Optional
 from enum import Enum
 
 class UserRole(str, Enum):
@@ -52,7 +52,8 @@ class ServiceMetrics(BaseModel):
   total_downtime_seconds: int
   mttr_seconds: int
   incident_count: int
-  severity_distribution:SeverityDis 
+  severity_distribution: Dict[str, int]
+  
 class Token(BaseModel):
     access_token: str
     token_type: str
