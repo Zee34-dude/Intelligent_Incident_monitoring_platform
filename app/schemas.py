@@ -50,6 +50,8 @@ class ServiceMetrics(BaseModel):
   uptime_percentage: float
   current_downtime_seconds:int
   total_downtime_seconds: int
+  total_uptime_seconds:int
+  service_life_time:int
   mttr_seconds: int
   incident_count: int
   severity_distribution: Dict[str, int]

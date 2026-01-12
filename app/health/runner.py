@@ -26,7 +26,7 @@ async def health_check_loop():
                 )
 
                 # STATUS CHANGE DETECTED
-                if service.last_status != current_status:
+                if service.last_status and service.last_status != current_status:
 
                     # 🔻 SERVICE WENT DOWN → CREATE NEW INCIDENT
                     if current_status == "DOWN":
@@ -54,7 +54,8 @@ async def health_check_loop():
                         status="RESOLVED",
                         severity=calculate_severity(result),
                         organization_id=service.organization_Id,
-                        started_at=latest_incident.created_at
+                        started_at=latest_incident.created_at,
+                        resolved_at=datetime.now(timezone.utc)
                         
                         )
                         db.add(new_incident)

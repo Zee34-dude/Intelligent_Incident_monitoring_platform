@@ -24,17 +24,17 @@ def create_service(
     db.commit()
     db.refresh(new_service)
     
-    new_incident=models.Incident(
-        service_id=new_service.id,
-        title=f"{new_service.website_name} is UP",
-        status="RESOLVED",
-        resolved_at=datetime.now(timezone.utc),
-        severity='LOW',
-        organization_id=new_service.organization_Id,
-    )
-    db.add(new_incident)
-    db.commit()
-    db.refresh(new_incident)
+    # new_incident=models.Incident(
+    #     service_id=new_service.id,
+    #     title=f"{new_service.website_name} is UP",
+    #     status="RESOLVED",
+    #     resolved_at=datetime.now(timezone.utc),
+    #     severity='LOW',
+    #     organization_id=new_service.organization_Id,
+    # )
+    # db.add(new_incident)
+    # db.commit()
+    # db.refresh(new_incident)
     
     return new_service
 

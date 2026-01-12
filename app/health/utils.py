@@ -1,8 +1,8 @@
 from datetime import datetime, timezone
-
+from sqlalchemy.orm import Session
 from app import models
 
-def calculate_severity(service, result):
+def calculate_severity( result):
     status = result.get("status")
     status_code = result.get("status_code")
     response_time = result.get("response_time", 0)
@@ -19,7 +19,7 @@ def calculate_severity(service, result):
 
     return "LOW"
 
-def current_downtime(service,db):
+def current_downtime(service,db:Session):
     lastest_incident=( 
     db.query(models.Incident)
     .filter(
