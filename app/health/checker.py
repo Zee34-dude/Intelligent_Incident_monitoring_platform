@@ -19,7 +19,7 @@ async def check_service(url:str):
             "status":"DOWN",
             "status_code":response.status_code,
             "response_time":response_time,
-            "error":f"HTTP {response.status_code}"
+            "error":f"HTTP {response.error}"
         }     
     except Exception as e:
         return {

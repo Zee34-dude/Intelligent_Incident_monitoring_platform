@@ -5,7 +5,7 @@ from fastapi import FastAPI
 
 from . import models
 from .database import engine
-from .routers import user, authentication, service, organization
+from .routers import user, authentication, service, organization, incident
 from app.health.runner import health_check_loop
 
 # Create tables first
@@ -26,3 +26,5 @@ app.include_router(user.router)
 app.include_router(authentication.router)
 app.include_router(service.router)
 app.include_router(organization.router)
+app.include_router(incident.router)
+

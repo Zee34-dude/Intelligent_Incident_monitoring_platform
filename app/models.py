@@ -1,7 +1,8 @@
 # models.py
 from datetime import datetime, timedelta, timezone
+from enum import Enum
 
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, Integer, String, Text, Enum as SqlEnum
 from app.database import Base
 from sqlalchemy.orm import relationship
 
@@ -73,6 +74,10 @@ class Organization(Base,TimestampMixin):
         back_populates="organizations",
         cascade="all, delete-orphan"
     )
+class IncidentStatus(Enum):
+    OPEN='OPEN'
+    INVESTIGATING='INVESTIGATING'
+    RESOLVED='RESOLVED'
     
 class Incident(Base,TimestampMixin):
     __tablename__ = "incidents"
@@ -80,7 +85,7 @@ class Incident(Base,TimestampMixin):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
-    status = Column(String, default="OPEN")  
+    status = Column(SqlEnum(IncidentStatus), default="OPEN")  
     severity = Column(String, nullable=False)  # LOW, MEDIUM, HIGH, CRITICAL
     organization_id = Column(
         Integer, 
@@ -88,10 +93,13 @@ class Incident(Base,TimestampMixin):
         nullable=False
     )
     resolved_at=Column(DateTime, nullable=True)
+    acknowledged_at=Column(DateTime,nullable=True)
     service_id=Column(Integer,ForeignKey("services.id"))
     started_at=Column(DateTime, nullable=True)
     organizations = relationship("Organization", back_populates="incidents")
     services=relationship("Service",back_populates="incidents")
+    investigated_by=Column(Integer,ForeignKey("users.id"))
+    investigation_note=Column(String,nullable=True)
     
 class Service(Base,TimestampMixin):
     __tablename__='services'

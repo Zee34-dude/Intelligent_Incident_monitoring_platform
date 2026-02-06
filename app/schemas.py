@@ -28,10 +28,9 @@ class OrganizationCreate(BaseModel):
     email:str
     user_id:int
     
-class IncidentCreate(BaseModel):
-    title: str
-    description: Optional[str] = None
-    severity: str
+class Incident(BaseModel):
+    note:str
+    user_id:int
 
 class ServiceCreate(BaseModel):
     website_name:str

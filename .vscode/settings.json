@@ -1,3 +1,11 @@
 {
-    "postman.settings.dotenv-detection-notification-visibility": false
+    "postman.settings.dotenv-detection-notification-visibility": false,
+    "editor.inlineSuggest.enabled": false,
+    "editor.suggest.showAI": false,
+    "github.copilot.enable": {
+        "*": false
+    },
+    "google.gemini.codeCompletion.enabled": false,
+    "codeium.enableCodeLens": false,
+    "tabnine.experimentalAutoImports": false
 }
