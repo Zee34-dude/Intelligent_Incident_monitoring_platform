@@ -15,6 +15,8 @@ SMTP_PASSWORD = os.getenv("SMTP_PASSWORD")
 
 
 def send_email(to_email: str, subject: str, body: str):
+    print('to_email', to_email)
+    print(SMTP_USER, SMTP_PASSWORD)
     """Send an email using SMTP_SSL"""
     msg = EmailMessage()
     msg["Subject"] = subject
@@ -23,15 +25,13 @@ def send_email(to_email: str, subject: str, body: str):
     msg.set_content(body)
     
     
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-        server.ehlo()
-        server.starttls()
+    with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT) as server:
         server.login(SMTP_USER, SMTP_PASSWORD)
         server.send_message(msg)
 
 
 def send_incident_alert(incident, organization):
-    print("📧 send_incident_alert CALLED")
+    print(organization.email)
     """Send alert when a service goes DOWN"""
     subject = f"🚨 ALERT: {incident.title}"
     body = f"""
